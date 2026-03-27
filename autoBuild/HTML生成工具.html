@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML 文件批量生成工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1e2c 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .file-input:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .file-input.has-file {
+            border-color: #4CAF50;
+            background: #f0f9f0;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-name {
+            margin-top: 8px;
+            color: #666;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .help-text {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .status.success {
+            background: #f0f9f0;
+            border-color: #4CAF50;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            background: #fff5f5;
+            border-color: #f44336;
+            color: #c62828;
+        }
+
+        .status.info {
+            background: #f0f7ff;
+            border-color: #2196F3;
+            color: #1565c0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .file-count {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .mode-selection {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .mode-selection.hidden {
+            display: none;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .mode-option:hover {
+            background: #f0f0f0;
+        }
+
+        .mode-option:last-child {
+            margin-bottom: 0;
+        }
+
+        .mode-option input[type="radio"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .mode-option label {
+            cursor: pointer;
+            flex: 1;
+            margin: 0;
+            font-weight: normal;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .mode-desc {
+            font-size: 12px;
+            color: #666;
+            margin-left: 28px;
+            margin-top: 2px;
+        }
+
+        .channel-selection {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .channel-selection.hidden {
+            display: none;
+        }
+
+        .channel-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .channel-option:hover {
+            background: #f0f0f0;
+        }
+
+        .channel-option input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .channel-option label {
+            cursor: pointer;
+            flex: 1;
+            margin: 0;
+            font-weight: normal;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .channel-select-all {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 600;
+        }
+
+        .output-option {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f0f7ff;
+            border-radius: 8px;
+            border: 1px solid #b3d9ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .output-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .output-option label {
+            cursor: pointer;
+            margin: 0;
+            font-weight: normal;
+            font-size: 14px;
+            color: #333;
+            flex: 1;
+        }
+
+        .output-option .help-icon {
+            color: #666;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 HTML 文件批量生成工具</h1>
+        <p class="subtitle">跨平台工具 · 无需安装 · 即开即用</p>
+
+        <div class="section">
+            <label>
+                选择 HTML 模板文件
+                <span class="file-count" id="fileCount">未选择</span>
+            </label>
+            <div class="file-input-wrapper">
+                <div class="file-input" id="fileInputDisplay">点击选择文件或拖拽文件到此处</div>
+                <input type="file" id="htmlFile" accept=".html" />
+            </div>
+            <div class="file-name" id="fileName"></div>
+            
+            <div class="mode-selection hidden" id="modeSelection">
+                <div class="mode-option">
+                    <input type="radio" id="modeGGURL" name="mode" value="ggurl" checked>
+                    <label for="modeGGURL">
+                        <strong>替换 GGURL</strong>
+                        <div class="mode-desc">替换 window["GGURL"] 的值，输出文件：url1.html, url2.html...</div>
+                    </label>
+                </div>
+                <div class="mode-option">
+                    <input type="radio" id="modeTitle" name="mode" value="title">
+                    <label for="modeTitle">
+                        <strong>替换标题名称（随机生成）</strong>
+                        <div class="mode-desc">输入数字，自动生成对应数量的随机字符串作为title，输出文件：源文件名_name1.html, name2.html...</div>
+                    </label>
+                </div>
+                <div class="mode-option">
+                    <input type="radio" id="modeChannel" name="mode" value="channel">
+                    <label for="modeChannel">
+                        <strong>渠道打包模式</strong>
+                        <div class="mode-desc">根据选择的渠道生成对应的HTML文件，支持多渠道和全渠道打包</div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="channel-selection hidden" id="channelSelection">
+                <div class="channel-select-all">
+                    <input type="checkbox" id="selectAllChannels">
+                    <label for="selectAllChannels" style="margin: 0; font-weight: 600;">全选/全渠道打包</label>
+                </div>
+                <div id="channelList"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <label id="inputLabel">输入 URL 数组</label>
+            <textarea id="urlInput" placeholder='支持两种格式：&#10;1. JSON 格式: ["url1", "url2", "url3"]&#10;2. 逗号分隔: url1,url2,url3'></textarea>
+            <div class="help-text" id="helpText">
+                💡 提示：每行一个 URL 也可以，程序会自动识别
+            </div>
+        </div>
+
+        <div class="output-option">
+            <input type="checkbox" id="selectFolderOutput">
+            <label for="selectFolderOutput">
+                选择文件夹输出（推荐）
+                <span class="help-icon" title="勾选后将弹出文件夹选择对话框，所有生成的文件将保存到选择的文件夹中">ℹ️</span>
+            </label>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" id="generateBtn">
+                <span id="btnText">生成 HTML 文件</span>
+            </button>
+            <button class="btn-secondary" id="clearBtn">清空</button>
+        </div>
+
+        <div class="status info hidden" id="status"></div>
+    </div>
+
+    <script>
+        const htmlFileInput = document.getElementById('htmlFile');
+        const fileInputDisplay = document.getElementById('fileInputDisplay');
+        const fileName = document.getElementById('fileName');
+        const fileCount = document.getElementById('fileCount');
+        const urlInput = document.getElementById('urlInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const status = document.getElementById('status');
+        const btnText = document.getElementById('btnText');
+        const modeSelection = document.getElementById('modeSelection');
+        const inputLabel = document.getElementById('inputLabel');
+        const modeGGURL = document.getElementById('modeGGURL');
+        const modeTitle = document.getElementById('modeTitle');
+        const modeChannel = document.getElementById('modeChannel');
+        const helpText = document.getElementById('helpText');
+        const channelSelection = document.getElementById('channelSelection');
+        const channelList = document.getElementById('channelList');
+        const selectAllChannels = document.getElementById('selectAllChannels');
+        const selectFolderOutput = document.getElementById('selectFolderOutput');
+
+        // 渠道配置（参考Python文件和PlayerAdSdk.ts）
+        const channelConfig = {
+            'UNITY': { name: 'Unity', folder: 'Unity', needZip: false },
+            'MTG': { name: 'Mintegral', folder: 'Mintegral', needZip: true },
+            'KWAI': { name: 'Kwai', folder: 'Kwai', needZip: true },
+            'APPLOVIN': { name: 'AppLovin', folder: 'AppLovin', needZip: false },
+            'NEWSBREAK': { name: 'newsBreak', folder: 'newsBreak', needZip: false },
+            'IRONSOURCES': { name: 'ironSource', folder: 'ironSource', needZip: false },
+            'Moloco': { name: 'Moloco', folder: 'Moloco', needZip: false },
+            'Google': { name: 'Google', folder: 'Google', needZip: true },
+            'TT': { name: 'TikTok', folder: 'TikTok', needZip: true, needConfig: true },
+            'BIGO': { name: 'BIGO', folder: 'BIGO', needZip: false }
+        };
+
+        let selectedFile = null;
+        let currentMode = 'ggurl'; // 'ggurl' 或 'title' 或 'channel'
+
+        // 初始化渠道列表
+        function initChannelList() {
+            channelList.innerHTML = '';
+            Object.keys(channelConfig).forEach(channelKey => {
+                const config = channelConfig[channelKey];
+                const div = document.createElement('div');
+                div.className = 'channel-option';
+                div.innerHTML = `
+                    <input type="checkbox" id="channel_${channelKey}" name="channels" value="${channelKey}">
+                    <label for="channel_${channelKey}">${config.name} (${channelKey})</label>
+                `;
+                channelList.appendChild(div);
+            });
+        }
+
+        initChannelList();
+
+        // 全选/取消全选
+        selectAllChannels.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('input[name="channels"]');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        // 文件选择
+        htmlFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                fileInputDisplay.textContent = file.name;
+                fileInputDisplay.classList.add('has-file');
+                fileName.textContent = `文件大小: ${(file.size / 1024).toFixed(2)} KB`;
+                fileCount.textContent = '已选择';
+                modeSelection.classList.remove('hidden');
+                logStatus('info', `已选择文件: ${file.name}`);
+            }
+        });
+
+        // 拖拽支持
+        fileInputDisplay.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            fileInputDisplay.style.borderColor = '#667eea';
+        });
+
+        fileInputDisplay.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            fileInputDisplay.style.borderColor = '#ddd';
+        });
+
+        fileInputDisplay.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.html')) {
+                htmlFileInput.files = e.dataTransfer.files;
+                htmlFileInput.dispatchEvent(new Event('change'));
+            } else {
+                logStatus('error', '请选择 HTML 文件');
+            }
+        });
+
+        // 模式选择变化
+        modeGGURL.addEventListener('change', function() {
+            if (this.checked) {
+                currentMode = 'ggurl';
+                inputLabel.textContent = '输入 URL 数组';
+                urlInput.placeholder = '支持两种格式：\n1. JSON 格式: ["url1", "url2", "url3"]\n2. 逗号分隔: url1,url2,url3';
+                helpText.textContent = '💡 提示：每行一个 URL 也可以，程序会自动识别';
+                channelSelection.classList.add('hidden');
+            }
+        });
+
+        modeTitle.addEventListener('change', function() {
+            if (this.checked) {
+                currentMode = 'title';
+                inputLabel.textContent = '输入生成数量（数字）';
+                urlInput.placeholder = '请输入要生成的文件数量，例如：8\n将自动生成8个随机字符串（10-20个字符）作为title';
+                helpText.textContent = '💡 提示：输入数字即可，会自动生成随机字符串作为title';
+                channelSelection.classList.add('hidden');
+            }
+        });
+
+        modeChannel.addEventListener('change', function() {
+            if (this.checked) {
+                currentMode = 'channel';
+                inputLabel.textContent = '输入 URL（可选，单个链接）';
+                urlInput.placeholder = '可选：输入一个URL链接替换模板中的GGURL，例如：https://example.com\n如果不输入，将使用模板文件中的原始URL';
+                helpText.textContent = '💡 提示：URL为可选，如果不输入URL，将保留模板文件中的原始GGURL值';
+                channelSelection.classList.remove('hidden');
+            }
+        });
+
+        // 生成随机字符串（10-20个字符，包含大小写字母）
+        function generateRandomString() {
+            const length = Math.floor(Math.random() * 11) + 10; // 10-20之间的随机长度
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // 解析 URL 数组或数字
+        function parseUrls(input, mode) {
+            if (!input || !input.trim()) {
+                return { success: false, error: '未输入任何内容' };
+            }
+
+            const trimmed = input.trim();
+
+            // 如果是 title 模式，只接受数字
+            if (mode === 'title') {
+                const num = parseInt(trimmed, 10);
+                if (isNaN(num) || num <= 0) {
+                    return { success: false, error: '请输入有效的数字（大于0）' };
+                }
+                if (num > 1000) {
+                    return { success: false, error: '生成数量不能超过1000' };
+                }
+                // 生成对应数量的随机字符串
+                const randomStrings = [];
+                for (let i = 0; i < num; i++) {
+                    randomStrings.push(generateRandomString());
+                }
+                return { success: true, urls: randomStrings };
+            }
+
+            // GGURL 模式：解析 URL 数组
+            let urls = [];
+
+            // 尝试解析 JSON 格式
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                    urls = parsed.filter(url => url).map(url => String(url).trim());
+                } else {
+                    throw new Error('不是数组格式');
+                }
+            } catch (e) {
+                // 如果不是 JSON，尝试按逗号分隔
+                if (trimmed.includes(',')) {
+                    urls = trimmed.split(',').map(url => url.trim().replace(/^["']|["']$/g, '')).filter(url => url);
+                } else {
+                    // 按行分隔
+                    urls = trimmed.split('\n').map(url => url.trim().replace(/^["']|["']$/g, '')).filter(url => url);
+                }
+            }
+
+            if (urls.length === 0) {
+                return { success: false, error: '未找到有效的 URL' };
+            }
+
+            return { success: true, urls: urls };
+        }
+
+        // 替换 GGURL
+        function replaceGGURL(content, newUrl) {
+            const pattern = /window\["GGURL"\]\s*=\s*"([^"]+)"\s*;?/g;
+            return content.replace(pattern, `window["GGURL"]="${newUrl}";`);
+        }
+
+        // 替换 Title
+        function replaceTitle(content, newTitle) {
+            // 匹配第一个 <title> 标签（不区分大小写，支持各种格式）
+            const pattern = /<title[^>]*>([^<]*)<\/title>/i;
+            const match = content.match(pattern);
+            if (match) {
+                return content.replace(pattern, `<title>${newTitle}</title>`);
+            }
+            return content;
+        }
+
+        // 标准化模板文件：删除所有渠道特定的代码，使其变成统一模板
+        // 返回标准化后的内容和原始GGURL值
+        function normalizeTemplate(content) {
+            let normalized = content;
+
+            // 1. 先提取原始GGURL值（在删除函数之前提取，避免被函数代码干扰）
+            let originalGgUrl = '';
+            const ggUrlMatch = content.match(/window\["GGURL"\]\s*=\s*"([^"]+)"\s*;?/);
+            if (ggUrlMatch && ggUrlMatch[1]) {
+                originalGgUrl = ggUrlMatch[1];
+            }
+
+            // 2. 删除所有渠道特定的函数（使用更全面的正则表达式，循环删除直到没有匹配项）
+            // 删除 function u_a(){mraid.open()};（支持各种格式：有/无空格、有/无分号、单行/多行）
+            let hasMore = true;
+            while (hasMore) {
+                const before = normalized;
+                // 匹配各种可能的格式
+                normalized = normalized.replace(/\s*function\s+u_a\s*\(\s*\)\s*\{\s*mraid\.open\s*\(\s*\)\s*;\s*\};?\s*/g, '');
+                normalized = normalized.replace(/function\s+u_a\s*\(\s*\)\s*\{\s*mraid\.open\s*\(\s*\)\s*;\s*\};?/g, '');
+                normalized = normalized.replace(/function\s+u_a\s*\([^)]*\)\s*\{[^}]*mraid\.open\s*\([^)]*\)\s*;[^}]*\};?/g, '');
+                hasMore = before !== normalized;
+            }
+            
+            // 删除 function u_a(){ExitApi.exit()};（支持各种格式）
+            hasMore = true;
+            while (hasMore) {
+                const before = normalized;
+                normalized = normalized.replace(/\s*function\s+u_a\s*\(\s*\)\s*\{\s*ExitApi\.exit\s*\(\s*\)\s*;\s*\};?\s*/g, '');
+                normalized = normalized.replace(/function\s+u_a\s*\(\s*\)\s*\{\s*ExitApi\.exit\s*\(\s*\)\s*;\s*\};?/g, '');
+                normalized = normalized.replace(/function\s+u_a\s*\([^)]*\)\s*\{[^}]*ExitApi\.exit\s*\([^)]*\)\s*;[^}]*\};?/g, '');
+                hasMore = before !== normalized;
+            }
+            
+            // 删除 window.FBPlayableOnCTAClick（支持各种格式）
+            hasMore = true;
+            while (hasMore) {
+                const before = normalized;
+                normalized = normalized.replace(/\s*window\.FBPlayableOnCTAClick\s*=\s*[^;]+;?\s*/g, '');
+                normalized = normalized.replace(/window\.FBPlayableOnCTAClick\s*=\s*[^;]+;?/g, '');
+                normalized = normalized.replace(/window\.FBPlayableOnCTAClick\s*=\s*[^;]+/g, '');
+                hasMore = before !== normalized;
+            }
+
+            // 3. 删除渠道特定的脚本标签
+            // 删除 exitapi.js 脚本
+            normalized = normalized.replace(/<script\s+src\s*=\s*["']https:\/\/tpc\.googlesyndication\.com\/pagead\/gadgets\/html5\/api\/exitapi\.js["']\s*><\/script>\s*/gi, '');
+            // 删除 TikTok playable SDK 脚本
+            normalized = normalized.replace(/<script\s+src\s*=\s*["']https:\/\/sf16-muse-va\.ibytedtos\.com\/obj\/union-fe-nc-i18n\/playable\/sdk\/playable-sdk\.js["']\s*><\/script>\s*/gi, '');
+
+            // 4. 重置 AD_TYPE 为空字符串（只保留第一个，删除其他的）
+            let adTypeCount = 0;
+            normalized = normalized.replace(
+                /window\["AD_TYPE"\]\s*=\s*"[^"]*"/g,
+                function(match) {
+                    adTypeCount++;
+                    if (adTypeCount === 1) {
+                        return 'window["AD_TYPE"]=""';
+                    } else {
+                        return ''; // 删除多余的AD_TYPE定义
+                    }
+                }
+            );
+
+            // 5. 再次彻底清理可能残留的函数（确保没有遗漏）
+            // 使用更宽松的正则表达式匹配任何可能的 function u_a 定义
+            normalized = normalized.replace(/function\s+u_a\s*\([^)]*\)\s*\{[^}]*\};?/g, '');
+            normalized = normalized.replace(/window\.FBPlayableOnCTAClick\s*=\s*[^;]+;?/g, '');
+
+            // 6. 重置 GGURL 为空字符串（只保留第一个，删除其他的）
+            let ggUrlCount = 0;
+            normalized = normalized.replace(
+                /window\["GGURL"\]\s*=\s*"[^"]*"\s*;?/g,
+                function(match) {
+                    ggUrlCount++;
+                    if (ggUrlCount === 1) {
+                        return 'window["GGURL"]=""';
+                    } else {
+                        return ''; // 删除多余的GGURL定义
+                    }
+                }
+            );
+
+            return { normalized, originalGgUrl };
+        }
+
+        // 根据渠道处理HTML内容（参考Python逻辑）
+        // ggUrl 为可选参数，如果为空则保留原始GGURL
+        function processChannelContent(content, adType, ggUrl) {
+            // 先标准化模板
+            const { normalized, originalGgUrl } = normalizeTemplate(content);
+            let processed = normalized;
+
+            // 替换 AD_TYPE（只替换第一个）
+            processed = processed.replace(
+                /window\["AD_TYPE"\]\s*=\s*""/,
+                `window["AD_TYPE"]="${adType}"`
+            );
+
+            // 确定最终使用的GGURL：如果提供了新URL则使用新URL，否则使用原始URL
+            const finalGgUrl = ggUrl && ggUrl.trim() ? ggUrl.trim() : originalGgUrl;
+
+            // 根据不同渠道处理（参考Python逻辑，假设模板已经是标准化的 window["GGURL"]=""）
+            if (adType === "UNITY" || adType === "APPLOVIN" || adType === "NEWSBREAK" || adType === "IRONSOURCES") {
+                // 替换 GGURL 并添加函数（只替换第一个）
+                processed = processed.replace(
+                    /window\["GGURL"\]\s*=\s*""/,
+                    `window["GGURL"]="${finalGgUrl}";\nfunction u_a(){mraid.open()};`
+                );
+            } else if (adType === "Moloco") {
+                processed = processed.replace(
+                    /window\["GGURL"\]\s*=\s*""/,
+                    `window["GGURL"]="${finalGgUrl}";\nwindow.FBPlayableOnCTAClick = () => (typeof FbPlayableAd === "undefined") ? alert("FBPlayableAd.onCTAClick") : FbPlayableAd.onCTAClick();`
+                );
+            } else if (adType === "Google") {
+                // Google 渠道需要添加 exitapi.js 脚本和 u_a 函数
+                processed = processed.replace(
+                    /window\["GGURL"\]\s*=\s*""/,
+                    `window["GGURL"]="${finalGgUrl}";\nfunction u_a(){ExitApi.exit()};`
+                );
+                // 在 </head> 标签前添加 exitapi.js
+                const headEndPos = processed.indexOf('</head>');
+                if (headEndPos !== -1) {
+                    const scriptTag = '<script src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"><\/script>\n';
+                    processed = processed.slice(0, headEndPos) + scriptTag + processed.slice(headEndPos);
+                }
+            } else if (adType === "TT") {
+                // TikTok Pangle 渠道：替换 GGURL（虽然 TikTok 不使用 mraid，但保留 GGURL 以保持兼容性）
+                processed = processed.replace(
+                    /window\["GGURL"\]\s*=\s*""/,
+                    `window["GGURL"]="${finalGgUrl}";`
+                );
+                // 在 </body> 标签前添加 TikTok playable SDK
+                const bodyEndPos = processed.lastIndexOf('</body>');
+                if (bodyEndPos !== -1) {
+                    const tiktokScript = '<script src="https://sf16-muse-va.ibytedtos.com/obj/union-fe-nc-i18n/playable/sdk/playable-sdk.js"><\/script>\n';
+                    processed = processed.slice(0, bodyEndPos) + tiktokScript + processed.slice(bodyEndPos);
+                }
+            } else {
+                // 其他渠道：只替换 GGURL
+                processed = processed.replace(
+                    /window\["GGURL"\]\s*=\s*""/,
+                    `window["GGURL"]="${finalGgUrl}";`
+                );
+            }
+
+            return processed;
+        }
+
+        // 创建ZIP文件
+        async function createZipFile(files, zipFileName) {
+            const zip = new JSZip();
+            files.forEach(file => {
+                zip.file(file.name, file.content);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            return blob;
+        }
+
+        // 下载ZIP文件
+        function downloadZip(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 生成文件
+        async function generateFiles() {
+            // 检查文件
+            if (!selectedFile) {
+                logStatus('error', '❌ 请先选择 HTML 模板文件');
+                return;
+            }
+
+            // 检查模式选择
+            const selectedMode = document.querySelector('input[name="mode"]:checked');
+            if (!selectedMode) {
+                logStatus('error', '❌ 请选择替换模式（GGURL、标题名称 或 渠道打包）');
+                return;
+            }
+            currentMode = selectedMode.value;
+
+            // 如果是渠道打包模式
+            if (currentMode === 'channel') {
+                await generateChannelFiles();
+                return;
+            }
+
+            // 解析输入数组或数字
+            const urlResult = parseUrls(urlInput.value, currentMode);
+            if (!urlResult.success) {
+                logStatus('error', `❌ ${urlResult.error}`);
+                return;
+            }
+
+            const values = urlResult.urls;
+            const itemName = currentMode === 'ggurl' ? 'URL' : '随机标题';
+            if (currentMode === 'title') {
+                logStatus('info', `📋 将生成 ${values.length} 个文件，每个使用随机字符串作为title...\n`);
+            } else {
+                logStatus('info', `📋 找到 ${values.length} 个 ${itemName}，开始生成文件...\n`);
+            }
+
+            // 读取文件
+            let htmlContent;
+            try {
+                htmlContent = await readFile(selectedFile);
+            } catch (e) {
+                logStatus('error', `❌ 读取文件失败: ${e.message}`);
+                return;
+            }
+
+            // 根据模式检查模板文件
+            if (currentMode === 'ggurl') {
+                if (!htmlContent.includes('window["GGURL"]')) {
+                    logStatus('error', '❌ 模板文件中未找到 window["GGURL"] 的定义');
+                    return;
+                }
+            } else {
+                const titleMatch = htmlContent.match(/<title[^>]*>([^<]*)<\/title>/i);
+                if (!titleMatch) {
+                    logStatus('error', '❌ 模板文件中未找到 <title> 标签');
+                    return;
+                }
+                logStatus('info', `找到原始标题: ${titleMatch[1]}\n`);
+            }
+
+            // 获取源文件名（不含扩展名）
+            const sourceFileName = selectedFile.name.replace(/\.html$/i, '');
+            
+            // 生成文件
+            let successCount = 0;
+            const files = [];
+
+            for (let i = 0; i < values.length; i++) {
+                const value = values[i];
+                let newContent;
+                let fileName;
+                let displayValue;
+
+                if (currentMode === 'ggurl') {
+                    newContent = replaceGGURL(htmlContent, value);
+                    fileName = `${sourceFileName}_url${i + 1}.html`;
+                    displayValue = `URL: ${value}`;
+                } else {
+                    newContent = replaceTitle(htmlContent, value);
+                    fileName = `${sourceFileName}_name${i + 1}.html`;
+                    displayValue = `标题: ${value}`;
+                }
+
+                files.push({ name: fileName, content: newContent, value: value });
+                logStatus('info', `✓ 已生成: ${fileName} (${displayValue})`);
+                successCount++;
+            }
+
+            // 根据用户选择决定输出方式
+            const useFolderOutput = selectFolderOutput.checked;
+            
+            if (useFolderOutput) {
+                // 保存到文件夹
+                const saved = await saveFilesToFolder(files);
+                if (saved) {
+                    fileCount.textContent = `已生成 ${successCount} 个`;
+                }
+            } else {
+                // 传统下载方式
+                logStatus('info', `\n📦 开始下载 ${successCount} 个文件...`);
+                
+                for (const file of files) {
+                    downloadFile(file.name, file.content);
+                    await sleep(100); // 避免浏览器阻止多个下载
+                }
+
+                logStatus('success', `\n✅ 成功生成并下载 ${successCount} 个文件！`);
+                fileCount.textContent = `已生成 ${successCount} 个`;
+            }
+        }
+
+        // 处理渠道打包的文件名：如果包含 __xsm__【渠道名】，则替换为当前渠道名；否则添加
+        function processChannelFileName(baseFileName, targetChannelName) {
+            // 不区分大小写匹配 __xsm__【渠道名】模式
+            // 匹配 __xsm__ 后面跟着的渠道名（可能包含大小写字母和数字，直到文件末尾）
+            // 使用 $ 确保匹配到文件末尾，避免匹配中间的部分
+            const xsmPattern = /__xsm__([a-zA-Z0-9]+)$/i;
+            const match = baseFileName.match(xsmPattern);
+            
+            if (match) {
+                // 如果找到匹配，替换渠道名部分（不区分大小写）
+                return baseFileName.replace(xsmPattern, `__xsm__${targetChannelName}`);
+            } else {
+                // 如果没有找到，添加 __xsm__【渠道名】
+                return `${baseFileName}__xsm__${targetChannelName}`;
+            }
+        }
+
+        // 生成渠道文件
+        async function generateChannelFiles() {
+            // 检查是否选择了渠道
+            const selectedChannels = Array.from(document.querySelectorAll('input[name="channels"]:checked')).map(cb => cb.value);
+            if (selectedChannels.length === 0) {
+                logStatus('error', '❌ 请至少选择一个渠道');
+                return;
+            }
+
+            // 获取URL（可选）
+            const ggUrl = urlInput.value.trim();
+            const hasNewUrl = ggUrl && ggUrl.length > 0;
+            
+            if (hasNewUrl) {
+                logStatus('info', `📋 选择了 ${selectedChannels.length} 个渠道，将使用新URL: ${ggUrl}\n`);
+            } else {
+                logStatus('info', `📋 选择了 ${selectedChannels.length} 个渠道，将使用模板文件中的原始URL\n`);
+            }
+
+            // 读取文件
+            let htmlContent;
+            try {
+                htmlContent = await readFile(selectedFile);
+            } catch (e) {
+                logStatus('error', `❌ 读取文件失败: ${e.message}`);
+                return;
+            }
+
+            // 检查模板文件
+            if (!htmlContent.includes('window["AD_TYPE"]')) {
+                logStatus('error', '❌ 模板文件中未找到 window["AD_TYPE"] 的定义');
+                return;
+            }
+            // 如果提供了新URL，检查模板中是否有GGURL；如果没有提供新URL，GGURL是可选的
+            if (hasNewUrl && !htmlContent.includes('window["GGURL"]')) {
+                logStatus('error', '❌ 模板文件中未找到 window["GGURL"] 的定义');
+                return;
+            }
+
+            // 获取源文件名（不含扩展名）
+            const sourceFileName = selectedFile.name.replace(/\.html$/i, '');
+
+            // 生成文件
+            let successCount = 0;
+            const files = [];
+
+            for (const channelKey of selectedChannels) {
+                const config = channelConfig[channelKey];
+                if (!config) continue;
+
+                try {
+                    // 处理HTML内容
+                    let processedContent = processChannelContent(htmlContent, channelKey, ggUrl);
+                    
+                    let fileName;
+                    let zipFileName;
+                    let fileContent;
+                    let isZip = false;
+
+                    // 处理文件名：如果包含 __xsm__【渠道名】，则替换；否则添加
+                    const processedBaseName = processChannelFileName(sourceFileName, config.name);
+                    
+                    if (config.needZip) {
+                        // 需要打包成ZIP的渠道
+                        if (channelKey === 'TT') {
+                            // TikTok特殊处理：需要重命名为index.html并添加config.json
+                            const indexContent = processedContent;
+                            const configJson = {
+                                "playable_orientation": 0
+                            };
+                            
+                            // 创建ZIP，包含index.html和config.json
+                            const zip = new JSZip();
+                            zip.file('index.html', indexContent);
+                            zip.file('config.json', JSON.stringify(configJson, null, 2));
+                            
+                            zipFileName = `${processedBaseName}.zip`;
+                            const zipBlob = await zip.generateAsync({ type: 'blob' });
+                            
+                            files.push({ 
+                                name: zipFileName, 
+                                blob: zipBlob, 
+                                isZip: true,
+                                channel: config.name 
+                            });
+                            logStatus('info', `✓ 已生成: ${zipFileName} (${config.name})`);
+                        } else {
+                            // 其他需要ZIP的渠道
+                            zipFileName = `${processedBaseName}.zip`;
+                            const zip = new JSZip();
+                            zip.file(`${processedBaseName}.html`, processedContent);
+                            const zipBlob = await zip.generateAsync({ type: 'blob' });
+                            
+                            files.push({ 
+                                name: zipFileName, 
+                                blob: zipBlob, 
+                                isZip: true,
+                                channel: config.name 
+                            });
+                            logStatus('info', `✓ 已生成: ${zipFileName} (${config.name})`);
+                        }
+                    } else {
+                        // 直接生成HTML文件
+                        fileName = `${processedBaseName}.html`;
+                        files.push({ 
+                            name: fileName, 
+                            content: processedContent, 
+                            isZip: false,
+                            channel: config.name 
+                        });
+                        logStatus('info', `✓ 已生成: ${fileName} (${config.name})`);
+                    }
+                    successCount++;
+                } catch (e) {
+                    logStatus('error', `❌ 生成 ${config.name} 文件失败: ${e.message}`);
+                }
+            }
+
+            // 根据用户选择决定输出方式
+            const useFolderOutput = selectFolderOutput.checked;
+            
+            if (useFolderOutput) {
+                // 保存到文件夹
+                const saved = await saveFilesToFolder(files);
+                if (saved) {
+                    fileCount.textContent = `已生成 ${successCount} 个`;
+                }
+            } else {
+                // 传统下载方式
+                logStatus('info', `\n📦 开始下载 ${successCount} 个文件...`);
+                
+                for (const file of files) {
+                    if (file.isZip) {
+                        downloadZip(file.blob, file.name);
+                    } else {
+                        downloadFile(file.name, file.content);
+                    }
+                    await sleep(200); // 避免浏览器阻止多个下载
+                }
+
+                logStatus('success', `\n✅ 成功生成并下载 ${successCount} 个文件！`);
+                fileCount.textContent = `已生成 ${successCount} 个`;
+            }
+        }
+
+        // 读取文件
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(new Error('文件读取失败'));
+                reader.readAsText(file, 'utf-8');
+            });
+        }
+
+        // 下载文件
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 检查浏览器是否支持 File System Access API
+        function supportsFileSystemAccess() {
+            return 'showDirectoryPicker' in window;
+        }
+
+        // 保存文件到选择的文件夹
+        async function saveFileToFolder(folderHandle, filename, content, isBlob = false) {
+            try {
+                const fileHandle = await folderHandle.getFileHandle(filename, { create: true });
+                const writable = await fileHandle.createWritable();
+                
+                if (isBlob) {
+                    // 如果是 ArrayBuffer（ZIP文件）
+                    await writable.write(content);
+                } else {
+                    // 如果是文本内容（字符串）
+                    const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+                    await writable.write(blob);
+                }
+                
+                await writable.close();
+                return true;
+            } catch (error) {
+                console.error(`保存文件 ${filename} 失败:`, error);
+                return false;
+            }
+        }
+
+        // 保存多个文件到文件夹
+        async function saveFilesToFolder(files) {
+            if (!supportsFileSystemAccess()) {
+                logStatus('error', '❌ 您的浏览器不支持文件夹选择功能，请使用 Chrome 86+ 或 Edge 86+ 浏览器');
+                return false;
+            }
+
+            try {
+                // 请求文件夹选择权限
+                const folderHandle = await window.showDirectoryPicker({
+                    mode: 'readwrite'
+                });
+
+                logStatus('info', `📁 已选择文件夹，开始保存 ${files.length} 个文件...\n`);
+
+                let successCount = 0;
+                for (const file of files) {
+                    try {
+                        if (file.isZip) {
+                            // ZIP文件需要转换为ArrayBuffer
+                            const arrayBuffer = await file.blob.arrayBuffer();
+                            const success = await saveFileToFolder(folderHandle, file.name, arrayBuffer, true);
+                            if (success) {
+                                logStatus('info', `✓ 已保存: ${file.name}`);
+                                successCount++;
+                            } else {
+                                logStatus('error', `❌ 保存失败: ${file.name}`);
+                            }
+                        } else {
+                            // HTML文件
+                            const success = await saveFileToFolder(folderHandle, file.name, file.content, false);
+                            if (success) {
+                                logStatus('info', `✓ 已保存: ${file.name}`);
+                                successCount++;
+                            } else {
+                                logStatus('error', `❌ 保存失败: ${file.name}`);
+                            }
+                        }
+                    } catch (error) {
+                        logStatus('error', `❌ 保存 ${file.name} 时出错: ${error.message}`);
+                    }
+                }
+
+                if (successCount === files.length) {
+                    logStatus('success', `\n✅ 成功保存 ${successCount} 个文件到选择的文件夹！`);
+                    return true;
+                } else {
+                    logStatus('error', `\n⚠️ 部分文件保存失败：成功 ${successCount}/${files.length}`);
+                    return false;
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    logStatus('info', '已取消文件夹选择');
+                } else {
+                    logStatus('error', `❌ 选择文件夹失败: ${error.message}`);
+                }
+                return false;
+            }
+        }
+
+        // 延迟函数
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 日志输出
+        function logStatus(type, message) {
+            status.classList.remove('hidden', 'success', 'error', 'info');
+            status.classList.add(type);
+            status.textContent += message + '\n';
+            status.scrollTop = status.scrollHeight;
+        }
+
+        // 生成按钮
+        generateBtn.addEventListener('click', async function() {
+            generateBtn.disabled = true;
+            btnText.innerHTML = '<span class="loading"></span>生成中...';
+            status.textContent = '';
+            status.classList.remove('hidden');
+
+            try {
+                await generateFiles();
+            } catch (e) {
+                logStatus('error', `❌ 发生错误: ${e.message}`);
+            } finally {
+                generateBtn.disabled = false;
+                btnText.textContent = '生成 HTML 文件';
+            }
+        });
+
+        // 清空按钮
+        clearBtn.addEventListener('click', function() {
+            selectedFile = null;
+            htmlFileInput.value = '';
+            fileInputDisplay.textContent = '点击选择文件或拖拽文件到此处';
+            fileInputDisplay.classList.remove('has-file');
+            fileName.textContent = '';
+            fileCount.textContent = '未选择';
+            modeSelection.classList.add('hidden');
+            channelSelection.classList.add('hidden');
+            modeGGURL.checked = true;
+            currentMode = 'ggurl';
+            inputLabel.textContent = '输入 URL 数组';
+            urlInput.placeholder = '支持两种格式：\n1. JSON 格式: ["url1", "url2", "url3"]\n2. 逗号分隔: url1,url2,url3';
+            helpText.textContent = '💡 提示：每行一个 URL 也可以，程序会自动识别';
+            urlInput.value = '';
+            // 清空渠道选择
+            document.querySelectorAll('input[name="channels"]').forEach(cb => cb.checked = false);
+            selectAllChannels.checked = false;
+            // 重置文件夹输出选项（如果浏览器支持）
+            if (!selectFolderOutput.disabled) {
+                selectFolderOutput.checked = false;
+            }
+            status.textContent = '';
+            status.classList.add('hidden');
+        });
+
+        // 检查浏览器支持并初始化
+        if (!supportsFileSystemAccess()) {
+            // 如果浏览器不支持文件夹选择，禁用该选项并显示提示
+            selectFolderOutput.disabled = true;
+            const label = selectFolderOutput.nextElementSibling;
+            if (label) {
+                label.innerHTML = '选择文件夹输出（需要 Chrome 86+ 或 Edge 86+）<span class="help-icon">⚠️</span>';
+                label.style.color = '#999';
+            }
+        }
+
+        // 初始化提示
+        logStatus('info', '👋 欢迎使用 HTML 文件批量生成工具！\n请选择模板文件，选择替换模式，然后输入数据数组。');
+    </script>
+</body>
+</html>
+
