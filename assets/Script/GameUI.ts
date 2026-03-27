@@ -40,6 +40,16 @@ export default class GameUI extends cc.Component {
     private laneGap: number = 0
     private blockSpawnExtraScale: number = 0.65
     private isBlockMoving: boolean = false
+    private catJumpDuration: number = 0.28
+    private catJumpHeight: number = 45
+    private catStandOffsetY: number = 8
+    private catCurrentBlock: cc.Node = null
+    private catNextBlock: cc.Node = null
+    private catJumping: boolean = false
+    private catJumpElapsed: number = 0
+    private catBaseScaleX: number = 1
+    private catBaseScaleY: number = 1
+    private catScaleInited: boolean = false
     protected onLoad(): void {
         this.gameModel = new GameModel()
         this.gameModel.mGame = this
@@ -58,7 +68,9 @@ export default class GameUI extends cc.Component {
             this.bgmAudioFlag = false
         })
         this.resize()
+        this.resolveCatNodeRef()
         this.initStartBlocks()
+        this.initCatOnFirstBlock()
         this.bindFingerTapEvent()
     }
     private getRandomInt(min: number, max: number) {
@@ -107,6 +119,131 @@ export default class GameUI extends cc.Component {
             }
             blockNode.name = `block_${i}`
             this.activeBlocks.push(blockNode)
+        }
+    }
+    private resolveCatNodeRef() {
+        if (this.catPre && this.catPre.isValid) {
+            return
+        }
+        if (this.mapNode && this.mapNode.parent) {
+            const byName = this.mapNode.parent.getChildByName("cat")
+            if (byName) {
+                this.catPre = byName
+            }
+        }
+    }
+    private getTopBlock(): cc.Node {
+        let best: cc.Node = null
+        let bestY = -Infinity
+        for (let i = 0; i < this.activeBlocks.length; i++) {
+            const b = this.activeBlocks[i]
+            if (!b || !b.isValid) continue
+            if (b.y > bestY) {
+                bestY = b.y
+                best = b
+            }
+        }
+        return best
+    }
+    private getBlockIndex(node: cc.Node): number {
+        if (!node || !node.name) return -1
+        const m = node.name.match(/^block_(\d+)$/)
+        return m ? Number(m[1]) : -1
+    }
+    private getBlockByIndex(index: number): cc.Node {
+        for (let i = 0; i < this.activeBlocks.length; i++) {
+            const b = this.activeBlocks[i]
+            if (!b || !b.isValid) continue
+            if (this.getBlockIndex(b) === index) {
+                return b
+            }
+        }
+        return null
+    }
+    private getNextBlockFrom(current: cc.Node): cc.Node {
+        if (!current) return null
+        // 按编号顺序跳：block_0 -> block_1 -> block_2 -> block_0
+        const curIdx = this.getBlockIndex(current)
+        if (curIdx >= 0 && this.initialBlockCount > 0) {
+            const nextIdx = (curIdx + 1) % this.initialBlockCount
+            const byIdx = this.getBlockByIndex(nextIdx)
+            if (byIdx) {
+                return byIdx
+            }
+        }
+        // 兜底：如果名字不规范，保持旧的按高度逻辑
+        let candidate: cc.Node = null
+        let maxLowerY = -Infinity
+        for (let i = 0; i < this.activeBlocks.length; i++) {
+            const b = this.activeBlocks[i]
+            if (!b || !b.isValid || b === current) continue
+            if (b.y < current.y && b.y > maxLowerY) {
+                maxLowerY = b.y
+                candidate = b
+            }
+        }
+        return candidate || this.getTopBlock()
+    }
+    private getCatStandPosByBlock(block: cc.Node): cc.Vec2 {
+        if (!this.catPre || !this.mapNode || !block) return null
+        const parent = this.catPre.parent
+        if (!parent) return null
+        const halfH = block.height * 0.5 * Math.abs(block.scaleY)
+        const inMap = cc.v2(block.x, block.y + halfH + this.catStandOffsetY)
+        const world = this.mapNode.convertToWorldSpaceAR(inMap)
+        const catHalf = this.catPre.height * 0.5 * Math.abs(this.catPre.scaleY)
+        world.y += catHalf
+        return parent.convertToNodeSpaceAR(world)
+    }
+    private initCatOnFirstBlock() {
+        this.resolveCatNodeRef()
+        if (!this.catPre) return
+        if (!this.catScaleInited) {
+            this.catBaseScaleX = this.catPre.scaleX
+            this.catBaseScaleY = this.catPre.scaleY
+            this.catScaleInited = true
+        }
+        this.catCurrentBlock = this.getBlockByIndex(0) || this.getTopBlock()
+        const pos = this.getCatStandPosByBlock(this.catCurrentBlock)
+        if (pos) {
+            this.catPre.setPosition(pos)
+        }
+    }
+    private updateCatJump(dt: number) {
+        this.resolveCatNodeRef()
+        if (!this.catPre || this.activeBlocks.length <= 0) return
+        if (!this.catCurrentBlock || !this.catCurrentBlock.isValid) {
+            this.catCurrentBlock = this.getBlockByIndex(0) || this.getTopBlock()
+        }
+        if (!this.catJumping) {
+            this.catNextBlock = this.getNextBlockFrom(this.catCurrentBlock)
+            if (this.catNextBlock && this.catNextBlock !== this.catCurrentBlock) {
+                this.catJumping = true
+                this.catJumpElapsed = 0
+            } else {
+                const holdPos = this.getCatStandPosByBlock(this.catCurrentBlock)
+                if (holdPos) this.catPre.setPosition(holdPos)
+                return
+            }
+        }
+        const fromPos = this.getCatStandPosByBlock(this.catCurrentBlock)
+        const toPos = this.getCatStandPosByBlock(this.catNextBlock)
+        if (!fromPos || !toPos) return
+        this.catJumpElapsed += dt
+        const t = Math.max(0, Math.min(1, this.catJumpElapsed / this.catJumpDuration))
+        const groundX = fromPos.x + (toPos.x - fromPos.x) * t
+        const groundY = fromPos.y + (toPos.y - fromPos.y) * t
+        const hopY = 4 * this.catJumpHeight * t * (1 - t)
+        const stretch = 1 + 0.08 * Math.sin(t * Math.PI)
+        this.catPre.scaleX = this.catBaseScaleX / Math.sqrt(stretch)
+        this.catPre.scaleY = this.catBaseScaleY * stretch
+        this.catPre.setPosition(groundX, groundY + hopY)
+        if (t >= 1) {
+            this.catCurrentBlock = this.catNextBlock
+            this.catNextBlock = null
+            this.catJumping = false
+            this.catPre.scaleX = this.catBaseScaleX
+            this.catPre.scaleY = this.catBaseScaleY
         }
     }
     private bindFingerTapEvent() {
@@ -176,6 +313,7 @@ export default class GameUI extends cc.Component {
         this.activeBlocks.length = 0
     }
     protected update(dt: number): void {
+        this.updateCatJump(dt)
         if (!this.isBlockMoving || this.activeBlocks.length <= 0) {
             return
         }
