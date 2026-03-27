@@ -2,6 +2,8 @@
 import { GameModel } from "./GameModel";
 import RESSpriteFrame from "./RESSpriteFrame";
 import blockItem from "./blockItem";
+import EffectUtils from "./utils/EffectUtils";
+import NotifyEffect from "./utils/NotifyEffect";
 
 
 
@@ -9,6 +11,8 @@ const { ccclass, property } = cc._decorator;
 
 @ccclass
 export default class GameUI extends cc.Component {
+    @property(cc.Node)
+    private errorBlock:cc.Node = null
     @property(cc.Node)
     private starArr:cc.Node[] = []
     @property(cc.ProgressBar)
@@ -69,6 +73,7 @@ export default class GameUI extends cc.Component {
     private successAfterYellowExtraJumps: number = 3
     private hasShownSuccessUI: boolean = false
     private hasFrozenForSuccess: boolean = false
+    private hasShownFailUI: boolean = false
     private perfectJumpCount: number = 0
     /** 总共跳到该次数时触发成功 */
     private targetJumpCount: number = 8
@@ -101,7 +106,12 @@ export default class GameUI extends cc.Component {
             this.bgmAudioFlag && cc.audioEngine.play(RESSpriteFrame.instance.bgmAudioClip, false, 1)
             this.bgmAudioFlag = false
         })
+        this.errorBlock.active = false
         this.successUI.active = false
+        if (this.failUI) {
+            this.failUI.active = false
+        }
+        this.hasShownFailUI = false
         this.hasShownSuccessUI = false
         this.hasFrozenForSuccess = false
         this.hasScheduledSuccessUI = false
@@ -382,6 +392,7 @@ export default class GameUI extends cc.Component {
             // 3 颗星按 1/3、2/3、1.0 依次点亮
             const threshold = (i + 1) / this.starArr.length
             star.active = this.progressDisplay >= threshold
+            if(this.progressDisplay >= threshold)cc.audioEngine.play(RESSpriteFrame.instance.starAudioClip, false, 1)
         }
     }
     private tryShowSuccessUI() {
@@ -395,7 +406,9 @@ export default class GameUI extends cc.Component {
         this.freezeForSuccess()
         this.hasShownSuccessUI = true
         if (this.successUI) {
-            this.successUI.active = true
+            NotifyEffect.NormalShowUI(this.successUI,RESSpriteFrame.instance.comeOutAudioClip,0.1,true,()=>{
+                cc.audioEngine.play(RESSpriteFrame.instance.cherrUpAudioClip,false,1)
+            })
         }
     }
     private freezeForSuccess() {
@@ -407,12 +420,12 @@ export default class GameUI extends cc.Component {
         this.isBlockMoving = false
         // 停止小猫跳跃并恢复基础缩放
         this.catJumping = false
-        this.catNextBlock = null
-        this.catJumpElapsed = 0
-        if (this.catPre && this.catScaleInited) {
-            this.catPre.scaleX = this.catBaseScaleX
-            this.catPre.scaleY = this.catBaseScaleY
-        }
+        // this.catNextBlock = null
+        // this.catJumpElapsed = 0
+        // if (this.catPre && this.catScaleInited) {
+        //     this.catPre.scaleX = this.catBaseScaleX
+        //     this.catPre.scaleY = this.catBaseScaleY
+        // }
     }
     private bindFingerTapEvent() {
         if (!this.bgNode) {
@@ -422,7 +435,18 @@ export default class GameUI extends cc.Component {
         this.bgNode.on(cc.Node.EventType.TOUCH_START, this.onFingerTap, this)
     }
     private onFingerTap() {
-        if (this.isBlockMoving || this.hasShownSuccessUI || this.hasFrozenForSuccess) {
+        if (this.hasShownSuccessUI || this.hasFrozenForSuccess || this.hasShownFailUI) {
+            return
+        }
+        // 首次点击开始；开始后再次点击立即失败
+        if (this.isBlockMoving) {
+            this.hasShownFailUI = true
+            this.freezeForSuccess()
+            this.maskNode.active = true
+            if (this.failUI) {
+                cc.audioEngine.play(RESSpriteFrame.instance.falldownAudioClip,false,1)
+                this.failUI.active = true
+            }
             return
         }
         this.bottomNode.active = false
