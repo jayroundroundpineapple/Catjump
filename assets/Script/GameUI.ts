@@ -28,7 +28,7 @@ export default class GameUI extends cc.Component {
     @property(cc.Node)
     private maskNode: cc.Node = null
     @property(cc.Node)
-    private resultNode: cc.Node = null
+    private successUI: cc.Node = null
 
     private bgmAudioFlag: boolean = true
     private canPlayMusic: boolean = false
@@ -57,7 +57,10 @@ export default class GameUI extends cc.Component {
     private blockFadeDuration: number = 0.22
     private jumpSuccessCount: number = 0
     private pinkAfterJumpCount: number = 2
-    private yellowAfterJumpCount: number = 5
+    private yellowAfterJumpCount: number = 4
+    private successAfterYellowExtraJumps: number = 3
+    private hasShownSuccessUI: boolean = false
+    private hasFrozenForSuccess: boolean = false
     /** 0:默认, 1:粉色, 2:黄色 */
     private colorStage: number = 0
     /** 跳跃触发低点：初始化时第一个 block 的 y */
@@ -81,6 +84,7 @@ export default class GameUI extends cc.Component {
             this.bgmAudioFlag && cc.audioEngine.play(RESSpriteFrame.instance.bgmAudioClip, false, 1)
             this.bgmAudioFlag = false
         })
+        this.successUI.active = false
         this.resize()
         this.resolveCatNodeRef()
         this.initStartBlocks()
@@ -271,10 +275,41 @@ export default class GameUI extends cc.Component {
         if (t >= 1) {
             this.jumpSuccessCount += 1
             this.refreshColorStageByJumpCount()
+            this.tryShowSuccessUI()
             this.catCurrentBlock = this.catNextBlock
             this.catNextBlock = null
             this.catJumping = false
             this.catTriggeredOnCurrent = false
+            this.catPre.scaleX = this.catBaseScaleX
+            this.catPre.scaleY = this.catBaseScaleY
+        }
+    }
+    private tryShowSuccessUI() {
+        if (this.hasShownSuccessUI) {
+            return
+        }
+        const target = this.yellowAfterJumpCount + this.successAfterYellowExtraJumps
+        if (this.jumpSuccessCount < target) {
+            return
+        }
+        this.freezeForSuccess()
+        this.hasShownSuccessUI = true
+        if (this.successUI) {
+            this.successUI.active = true
+        }
+    }
+    private freezeForSuccess() {
+        if (this.hasFrozenForSuccess) {
+            return
+        }
+        this.hasFrozenForSuccess = true
+        // 停止后续 block 下落与生成
+        this.isBlockMoving = false
+        // 停止小猫跳跃并恢复基础缩放
+        this.catJumping = false
+        this.catNextBlock = null
+        this.catJumpElapsed = 0
+        if (this.catPre && this.catScaleInited) {
             this.catPre.scaleX = this.catBaseScaleX
             this.catPre.scaleY = this.catBaseScaleY
         }
@@ -287,7 +322,7 @@ export default class GameUI extends cc.Component {
         this.bgNode.on(cc.Node.EventType.TOUCH_START, this.onFingerTap, this)
     }
     private onFingerTap() {
-        if (this.isBlockMoving) {
+        if (this.isBlockMoving || this.hasShownSuccessUI || this.hasFrozenForSuccess) {
             return
         }
         this.bottomNode.active = false

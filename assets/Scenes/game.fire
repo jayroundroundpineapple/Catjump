@@ -2076,7 +2076,7 @@
         "__id__": 78
       }
     ],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 84
@@ -3232,7 +3232,7 @@
     "node": {
       "__id__": 67
     },
-    "_enabled": false,
+    "_enabled": true,
     "_defaultClip": {
       "__uuid__": "3048e41d-8a8c-4cce-ab44-73c78a1c7156"
     },
@@ -3683,7 +3683,9 @@
     ],
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
-    "_spriteFrame": null,
+    "_spriteFrame": {
+      "__uuid__": "4d319050-4372-46e7-914c-66cc3ec0651e"
+    },
     "_type": 0,
     "_sizeMode": 1,
     "_fillType": 0,
@@ -3803,7 +3805,7 @@
       "__id__": 2
     },
     "component": "",
-    "_componentId": "b7732FMWMJCOo7O1XXJr5pi",
+    "_componentId": "d73baJ/TWhMsq/2Mn9dqlC4",
     "handler": "cashoutFunc",
     "customEventData": ""
   },
@@ -5570,7 +5572,7 @@
       "__id__": 2
     },
     "component": "",
-    "_componentId": "b7732FMWMJCOo7O1XXJr5pi",
+    "_componentId": "d73baJ/TWhMsq/2Mn9dqlC4",
     "handler": "cashoutFunc",
     "customEventData": ""
   },
@@ -6021,7 +6023,9 @@
       "__id__": 5
     },
     "maskNode": null,
-    "resultNode": null,
+    "successUI": {
+      "__id__": 47
+    },
     "_id": "6aBlFZP7pF95Yrwzi8Ww/J"
   },
   {
