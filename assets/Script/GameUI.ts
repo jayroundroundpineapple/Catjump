@@ -75,6 +75,9 @@ export default class GameUI extends cc.Component {
     private perfectTargetCount: number = 8
     private successDelaySec: number = 0.5
     private hasScheduledSuccessUI: boolean = false
+    private progressTarget: number = 0
+    private progressDisplay: number = 0
+    private progressLerpSpeed: number = 3.8
     /** 0:默认, 1:粉色, 2:黄色 */
     private colorStage: number = 0
     /** 跳跃触发低点：初始化时第一个 block 的 y */
@@ -341,6 +344,8 @@ export default class GameUI extends cc.Component {
         }, this.successDelaySec)
     }
     private resetProgressUI() {
+        this.progressTarget = 0
+        this.progressDisplay = 0
         if (this.proBar) {
             this.proBar.progress = 0
         }
@@ -354,8 +359,17 @@ export default class GameUI extends cc.Component {
     private updateProgressUI() {
         const target = Math.max(1, this.targetJumpCount)
         const ratio = Math.max(0, Math.min(1, this.perfectJumpCount / target))
+        this.progressTarget = ratio
+    }
+    private updateProgressBarSmooth(dt: number) {
+        // 进度条平滑追赶目标值，避免“一次跳一大段”的生硬感
+        const t = Math.max(0, Math.min(1, dt * this.progressLerpSpeed))
+        this.progressDisplay += (this.progressTarget - this.progressDisplay) * t
+        if (Math.abs(this.progressTarget - this.progressDisplay) < 0.001) {
+            this.progressDisplay = this.progressTarget
+        }
         if (this.proBar) {
-            this.proBar.progress = ratio
+            this.proBar.progress = this.progressDisplay
         }
         if (!this.starArr || this.starArr.length <= 0) {
             return
@@ -367,7 +381,7 @@ export default class GameUI extends cc.Component {
             }
             // 3 颗星按 1/3、2/3、1.0 依次点亮
             const threshold = (i + 1) / this.starArr.length
-            star.active = ratio >= threshold
+            star.active = this.progressDisplay >= threshold
         }
     }
     private tryShowSuccessUI() {
@@ -519,6 +533,7 @@ export default class GameUI extends cc.Component {
         this.activeBlocks.length = 0
     }
     protected update(dt: number): void {
+        this.updateProgressBarSmooth(dt)
         this.updateCatJump(dt)
         if (!this.isBlockMoving || this.activeBlocks.length <= 0) {
             return
