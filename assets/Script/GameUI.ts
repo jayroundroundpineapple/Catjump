@@ -10,6 +10,10 @@ const { ccclass, property } = cc._decorator;
 @ccclass
 export default class GameUI extends cc.Component {
     @property(cc.Node)
+    private starArr:cc.Node[] = []
+    @property(cc.ProgressBar)
+    private proBar:cc.ProgressBar = null
+    @property(cc.Node)
     private failUI:cc.Node = null
     @property(cc.Node)
     private prefectNode:cc.Node = null
@@ -66,6 +70,8 @@ export default class GameUI extends cc.Component {
     private hasShownSuccessUI: boolean = false
     private hasFrozenForSuccess: boolean = false
     private perfectJumpCount: number = 0
+    /** 总共跳到该次数时触发成功 */
+    private targetJumpCount: number = 8
     private perfectTargetCount: number = 8
     private successDelaySec: number = 0.5
     private hasScheduledSuccessUI: boolean = false
@@ -93,9 +99,14 @@ export default class GameUI extends cc.Component {
             this.bgmAudioFlag = false
         })
         this.successUI.active = false
+        this.hasShownSuccessUI = false
+        this.hasFrozenForSuccess = false
+        this.hasScheduledSuccessUI = false
+        this.perfectJumpCount = 0
         if (this.prefectNode) {
             this.prefectNode.active = false
         }
+        this.resetProgressUI()
         this.resize()
         this.resolveCatNodeRef()
         this.initStartBlocks()
@@ -305,6 +316,7 @@ export default class GameUI extends cc.Component {
     }
     private onPerfectJump(landedBlock: cc.Node | null) {
         this.perfectJumpCount += 1
+        this.updateProgressUI()
         if (this.prefectNode) {
             this.prefectNode.active = true
             const labelNode = this.prefectNode.childrenCount > 0 ? this.prefectNode.children[0] : null
@@ -313,13 +325,7 @@ export default class GameUI extends cc.Component {
                 lb.string = `x${this.perfectJumpCount}`
             }
         }
-        if (this.perfectJumpCount < this.perfectTargetCount) {
-            return
-        }
-        // 达到连击后，还必须刚好落在最后一个 block 才进入成功
-        const lastBlockIndex = this.initialBlockCount - 1
-        const landedIndex = this.getBlockIndex(landedBlock)
-        if (landedIndex !== lastBlockIndex) {
+        if (this.perfectJumpCount < this.targetJumpCount) {
             return
         }
         this.freezeForSuccess()
@@ -333,6 +339,36 @@ export default class GameUI extends cc.Component {
             }
             this.hasShownSuccessUI = true
         }, this.successDelaySec)
+    }
+    private resetProgressUI() {
+        if (this.proBar) {
+            this.proBar.progress = 0
+        }
+        for (let i = 0; i < this.starArr.length; i++) {
+            const star = this.starArr[i]
+            if (star) {
+                star.active = false
+            }
+        }
+    }
+    private updateProgressUI() {
+        const target = Math.max(1, this.targetJumpCount)
+        const ratio = Math.max(0, Math.min(1, this.perfectJumpCount / target))
+        if (this.proBar) {
+            this.proBar.progress = ratio
+        }
+        if (!this.starArr || this.starArr.length <= 0) {
+            return
+        }
+        for (let i = 0; i < this.starArr.length; i++) {
+            const star = this.starArr[i]
+            if (!star) {
+                continue
+            }
+            // 3 颗星按 1/3、2/3、1.0 依次点亮
+            const threshold = (i + 1) / this.starArr.length
+            star.active = ratio >= threshold
+        }
     }
     private tryShowSuccessUI() {
         if (this.hasShownSuccessUI) {
