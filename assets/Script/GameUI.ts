@@ -294,8 +294,8 @@ export default class GameUI extends cc.Component {
             return
         }
         const halfHeight = this.mapNode.height * 0.5
-        this.topSpawnY = halfHeight + 120
-        this.bottomRecycleY = -halfHeight - 160
+        this.topSpawnY = halfHeight + 320
+        this.bottomRecycleY = -halfHeight - 80
     }
     private createOrReuseBlock() {
         let node: cc.Node = null
