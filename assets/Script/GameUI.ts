@@ -43,7 +43,7 @@ export default class GameUI extends cc.Component {
     private isBlockMoving: boolean = false
     private catJumpDuration: number = 0.48
     private catJumpHeight: number = 45
-    private catStandOffsetY: number = 8
+    private catStandOffsetY: number = -50
     private catCurrentBlock: cc.Node = null
     private catNextBlock: cc.Node = null
     private catJumping: boolean = false
@@ -51,8 +51,9 @@ export default class GameUI extends cc.Component {
     private catBaseScaleX: number = 1
     private catBaseScaleY: number = 1
     private catScaleInited: boolean = false
+    private blockFadeDuration: number = 0.22
     /** 跳跃触发低点：初始化时第一个 block 的 y */
-    private catJumpTriggerY: number = 0
+    private catJumpTriggerY: number = -200
     /** 当前脚下 block 是否已触发过一次跳跃，防止同一块反复触发 */
     private catTriggeredOnCurrent: boolean = false
     protected onLoad(): void {
@@ -234,6 +235,7 @@ export default class GameUI extends cc.Component {
                 this.catTriggeredOnCurrent = true
                 this.catNextBlock = this.getNextBlockFrom(this.catCurrentBlock)
                 if (this.catNextBlock && this.catNextBlock !== this.catCurrentBlock) {
+                    this.playCurrentBlockFadeOut(this.catCurrentBlock)
                     this.catJumping = true
                     this.catJumpElapsed = 0
                 }
@@ -312,11 +314,18 @@ export default class GameUI extends cc.Component {
     }
     private placeBlock(blockNode: cc.Node, y: number, randomLane: boolean) {
         let posX = randomLane ? this.laneXList[this.getRandomInt(0, this.laneXList.length - 1)] : 0
+        blockNode.stopAllActions()
+        blockNode.opacity = 255
         blockNode.setPosition(posX, y)
         const totalRange = this.topSpawnY - this.bottomRecycleY
         const nearRatio = Math.max(0, Math.min(1, (this.topSpawnY - y) / totalRange))
         // 2D拟3D: 越靠下越“近”，尺寸稍微变大
         blockNode.scale = this.blockSpawnExtraScale + nearRatio * 0.55
+    }
+    private playCurrentBlockFadeOut(blockNode: cc.Node) {
+        if (!blockNode || !blockNode.isValid) return
+        blockNode.stopAllActions()
+        blockNode.runAction(cc.fadeTo(this.blockFadeDuration, 0))
     }
     private respawnBlockAtTop(blockNode: cc.Node) {
         const topBlock = this.getTopBlock()
