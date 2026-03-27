@@ -1,6 +1,7 @@
 
 import { GameModel } from "./GameModel";
 import RESSpriteFrame from "./RESSpriteFrame";
+import blockItem from "./blockItem";
 
 
 
@@ -8,6 +9,8 @@ const { ccclass, property } = cc._decorator;
 
 @ccclass
 export default class GameUI extends cc.Component {
+    @property(cc.SpriteFrame)
+    private bgSpriteFrameArr: cc.SpriteFrame[] = []
     @property(cc.Node)
     private catPre:cc.Node = null
     @property(cc.Node)
@@ -52,6 +55,11 @@ export default class GameUI extends cc.Component {
     private catBaseScaleY: number = 1
     private catScaleInited: boolean = false
     private blockFadeDuration: number = 0.22
+    private jumpSuccessCount: number = 0
+    private pinkAfterJumpCount: number = 2
+    private yellowAfterJumpCount: number = 5
+    /** 0:默认, 1:粉色, 2:黄色 */
+    private colorStage: number = 0
     /** 跳跃触发低点：初始化时第一个 block 的 y */
     private catJumpTriggerY: number = -200
     /** 当前脚下 block 是否已触发过一次跳跃，防止同一块反复触发 */
@@ -77,6 +85,7 @@ export default class GameUI extends cc.Component {
         this.resolveCatNodeRef()
         this.initStartBlocks()
         this.initCatOnFirstBlock()
+        this.updateBgByStage(this.colorStage)
         this.bindFingerTapEvent()
     }
     private getRandomInt(min: number, max: number) {
@@ -124,6 +133,7 @@ export default class GameUI extends cc.Component {
             } else {
                 this.placeBlock(blockNode, y, true)
             }
+            this.applyBlockSkin(blockNode)
             blockNode.name = `block_${i}`
             this.activeBlocks.push(blockNode)
         }
@@ -259,6 +269,8 @@ export default class GameUI extends cc.Component {
         this.catPre.scaleY = this.catBaseScaleY * stretch
         this.catPre.setPosition(groundX, groundY + hopY)
         if (t >= 1) {
+            this.jumpSuccessCount += 1
+            this.refreshColorStageByJumpCount()
             this.catCurrentBlock = this.catNextBlock
             this.catNextBlock = null
             this.catJumping = false
@@ -331,6 +343,49 @@ export default class GameUI extends cc.Component {
         const topBlock = this.getTopBlock()
         const nextY = topBlock ? (topBlock.y + this.blockVerticalGap) : this.topSpawnY
         this.placeBlock(blockNode, nextY, true)
+        this.applyBlockSkin(blockNode)
+    }
+    private applyBlockSkin(blockNode: cc.Node) {
+        if (!blockNode || !blockNode.isValid) return
+        let item = blockNode.getComponent(blockItem)
+        if (!item) {
+            item = blockNode.addComponent(blockItem)
+        }
+        if (this.jumpSuccessCount >= this.yellowAfterJumpCount) {
+            item.setYellow(true)
+            return
+        }
+        if (this.jumpSuccessCount >= this.pinkAfterJumpCount) {
+            item.setPink(true)
+            return
+        }
+        item.setPink(false)
+    }
+    private refreshColorStageByJumpCount() {
+        let nextStage = 0
+        if (this.jumpSuccessCount >= this.yellowAfterJumpCount) {
+            nextStage = 2
+        } else if (this.jumpSuccessCount >= this.pinkAfterJumpCount) {
+            nextStage = 1
+        }
+        if (nextStage === this.colorStage) {
+            return
+        }
+        this.colorStage = nextStage
+        this.updateBgByStage(this.colorStage)
+    }
+    private updateBgByStage(stage: number) {
+        if (!this.bgNode || !this.bgSpriteFrameArr || this.bgSpriteFrameArr.length <= 0) {
+            return
+        }
+        const sp = this.bgNode.getComponent(cc.Sprite)
+        if (!sp) {
+            return
+        }
+        // 约定：0=默认，1=粉色，2=黄色（超出范围则忽略）
+        if (stage >= 0 && stage < this.bgSpriteFrameArr.length && this.bgSpriteFrameArr[stage]) {
+            sp.spriteFrame = this.bgSpriteFrameArr[stage]
+        }
     }
     private clearAllBlocks() {
         for (let i = 0; i < this.activeBlocks.length; i++) {
