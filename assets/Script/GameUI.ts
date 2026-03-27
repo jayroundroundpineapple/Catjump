@@ -9,6 +9,8 @@ const { ccclass, property } = cc._decorator;
 
 @ccclass
 export default class GameUI extends cc.Component {
+    @property(cc.Node)
+    private prefectNode:cc.Node = null
     @property(cc.SpriteFrame)
     private bgSpriteFrameArr: cc.SpriteFrame[] = []
     @property(cc.Node)
@@ -61,6 +63,10 @@ export default class GameUI extends cc.Component {
     private successAfterYellowExtraJumps: number = 3
     private hasShownSuccessUI: boolean = false
     private hasFrozenForSuccess: boolean = false
+    private perfectJumpCount: number = 0
+    private perfectTargetCount: number = 8
+    private successDelaySec: number = 0.5
+    private hasScheduledSuccessUI: boolean = false
     /** 0:默认, 1:粉色, 2:黄色 */
     private colorStage: number = 0
     /** 跳跃触发低点：初始化时第一个 block 的 y */
@@ -85,6 +91,9 @@ export default class GameUI extends cc.Component {
             this.bgmAudioFlag = false
         })
         this.successUI.active = false
+        if (this.prefectNode) {
+            this.prefectNode.active = false
+        }
         this.resize()
         this.resolveCatNodeRef()
         this.initStartBlocks()
@@ -275,7 +284,7 @@ export default class GameUI extends cc.Component {
         if (t >= 1) {
             this.jumpSuccessCount += 1
             this.refreshColorStageByJumpCount()
-            this.tryShowSuccessUI()
+            this.onPerfectJump()
             this.catCurrentBlock = this.catNextBlock
             this.catNextBlock = null
             this.catJumping = false
@@ -283,6 +292,31 @@ export default class GameUI extends cc.Component {
             this.catPre.scaleX = this.catBaseScaleX
             this.catPre.scaleY = this.catBaseScaleY
         }
+    }
+    private onPerfectJump() {
+        this.perfectJumpCount += 1
+        if (this.prefectNode) {
+            this.prefectNode.active = true
+            const labelNode = this.prefectNode.childrenCount > 0 ? this.prefectNode.children[0] : null
+            const lb = labelNode ? labelNode.getComponent(cc.Label) : null
+            if (lb) {
+                lb.string = `x${this.perfectJumpCount}`
+            }
+        }
+        if (this.perfectJumpCount < this.perfectTargetCount) {
+            return
+        }
+        this.freezeForSuccess()
+        if (this.hasScheduledSuccessUI) {
+            return
+        }
+        this.hasScheduledSuccessUI = true
+        this.scheduleOnce(() => {
+            if (this.successUI) {
+                this.successUI.active = true
+            }
+            this.hasShownSuccessUI = true
+        }, this.successDelaySec)
     }
     private tryShowSuccessUI() {
         if (this.hasShownSuccessUI) {
