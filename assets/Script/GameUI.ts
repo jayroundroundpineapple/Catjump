@@ -73,6 +73,7 @@ export default class GameUI extends cc.Component {
     private successAfterYellowExtraJumps: number = 3
     private hasShownSuccessUI: boolean = false
     private hasFrozenForSuccess: boolean = false
+    private hasFailTweening: boolean = false
     private hasShownFailUI: boolean = false
     private perfectJumpCount: number = 0
     /** 总共跳到该次数时触发成功 */
@@ -408,7 +409,7 @@ export default class GameUI extends cc.Component {
         if (this.successUI) {
             NotifyEffect.NormalShowUI(this.successUI,RESSpriteFrame.instance.comeOutAudioClip,0.1,true,()=>{
                 cc.audioEngine.play(RESSpriteFrame.instance.cherrUpAudioClip,false,1)
-            })
+            }) 
         }
     }
     private freezeForSuccess() {
@@ -435,22 +436,52 @@ export default class GameUI extends cc.Component {
         this.bgNode.on(cc.Node.EventType.TOUCH_START, this.onFingerTap, this)
     }
     private onFingerTap() {
-        if (this.hasShownSuccessUI || this.hasFrozenForSuccess || this.hasShownFailUI) {
+        if (this.hasShownSuccessUI || this.hasShownFailUI || this.hasFailTweening) {
             return
         }
         // 首次点击开始；开始后再次点击立即失败
         if (this.isBlockMoving) {
-            this.hasShownFailUI = true
-            this.freezeForSuccess()
-            this.maskNode.active = true
-            if (this.failUI) {
-                cc.audioEngine.play(RESSpriteFrame.instance.falldownAudioClip,false,1)
-                this.failUI.active = true
-            }
+            this.triggerFailFall()
             return
         }
         this.bottomNode.active = false
         this.isBlockMoving = true
+    }
+    private triggerFailFall() {
+        if (this.hasFailTweening || this.hasShownFailUI) {
+            return
+        }
+        this.hasFailTweening = true
+        this.freezeForSuccess()
+        // 点亮“当前小猫的下一个 block”的第一个子节点
+        const nextBlock = this.getNextBlockFrom(this.catCurrentBlock)
+        if (nextBlock && nextBlock.isValid && nextBlock.childrenCount > 0) {
+            const firstChild = nextBlock.children[0]
+            if (firstChild && firstChild.isValid) {
+                firstChild.active = true
+            }
+        }
+        if (!this.catPre || !this.catPre.isValid) {
+            this.finishFailUI()
+            return
+        }
+        cc.Tween.stopAllByTarget(this.catPre)
+        const targetY = this.catPre.y - 1500
+        cc.tween(this.catPre)
+            .to(0.65, { y: targetY }, { easing: "quadIn" })
+            .call(() => {
+                this.finishFailUI()
+            })
+            .start()
+    }
+    private finishFailUI() {
+        this.hasShownFailUI = true
+        this.hasFailTweening = false
+        this.maskNode && (this.maskNode.active = true)
+        if (this.failUI) {
+            cc.audioEngine.play(RESSpriteFrame.instance.falldownAudioClip, false, 1)
+            this.failUI.active = true
+        }
     }
     private prepareLanes() {
         this.laneXList.length = 0
