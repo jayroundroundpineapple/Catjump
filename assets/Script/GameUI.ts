@@ -40,7 +40,7 @@ export default class GameUI extends cc.Component {
     private laneGap: number = 0
     private blockSpawnExtraScale: number = 0.65
     private isBlockMoving: boolean = false
-    private catJumpDuration: number = 0.28
+    private catJumpDuration: number = 0.48
     private catJumpHeight: number = 45
     private catStandOffsetY: number = 8
     private catCurrentBlock: cc.Node = null
@@ -50,6 +50,10 @@ export default class GameUI extends cc.Component {
     private catBaseScaleX: number = 1
     private catBaseScaleY: number = 1
     private catScaleInited: boolean = false
+    /** 跳跃触发低点：初始化时第一个 block 的 y */
+    private catJumpTriggerY: number = 0
+    /** 当前脚下 block 是否已触发过一次跳跃，防止同一块反复触发 */
+    private catTriggeredOnCurrent: boolean = false
     protected onLoad(): void {
         this.gameModel = new GameModel()
         this.gameModel.mGame = this
@@ -114,6 +118,7 @@ export default class GameUI extends cc.Component {
             // 第一个block固定在中间列，x = 0
             if (i === 0) {
                 this.placeBlock(blockNode, y, false)
+                this.catJumpTriggerY = y
             } else {
                 this.placeBlock(blockNode, y, true)
             }
@@ -214,13 +219,25 @@ export default class GameUI extends cc.Component {
         if (!this.catPre || this.activeBlocks.length <= 0) return
         if (!this.catCurrentBlock || !this.catCurrentBlock.isValid) {
             this.catCurrentBlock = this.getBlockByIndex(0) || this.getTopBlock()
+            this.catTriggeredOnCurrent = false
+        }
+        // block 静止时不跳，只保持站在当前 block 上
+        if (!this.isBlockMoving) {
+            const holdPos = this.getCatStandPosByBlock(this.catCurrentBlock)
+            if (holdPos) this.catPre.setPosition(holdPos)
+            return
         }
         if (!this.catJumping) {
-            this.catNextBlock = this.getNextBlockFrom(this.catCurrentBlock)
-            if (this.catNextBlock && this.catNextBlock !== this.catCurrentBlock) {
-                this.catJumping = true
-                this.catJumpElapsed = 0
-            } else {
+            // 只有当前 block 到达触发低点时才跳
+            if (!this.catTriggeredOnCurrent && this.catCurrentBlock.y <= this.catJumpTriggerY) {
+                this.catTriggeredOnCurrent = true
+                this.catNextBlock = this.getNextBlockFrom(this.catCurrentBlock)
+                if (this.catNextBlock && this.catNextBlock !== this.catCurrentBlock) {
+                    this.catJumping = true
+                    this.catJumpElapsed = 0
+                }
+            }
+            if (!this.catJumping) {
                 const holdPos = this.getCatStandPosByBlock(this.catCurrentBlock)
                 if (holdPos) this.catPre.setPosition(holdPos)
                 return
@@ -242,6 +259,7 @@ export default class GameUI extends cc.Component {
             this.catCurrentBlock = this.catNextBlock
             this.catNextBlock = null
             this.catJumping = false
+            this.catTriggeredOnCurrent = false
             this.catPre.scaleX = this.catBaseScaleX
             this.catPre.scaleY = this.catBaseScaleY
         }
