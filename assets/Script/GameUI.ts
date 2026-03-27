@@ -282,18 +282,26 @@ export default class GameUI extends cc.Component {
         this.catPre.scaleY = this.catBaseScaleY * stretch
         this.catPre.setPosition(groundX, groundY + hopY)
         if (t >= 1) {
-            this.jumpSuccessCount += 1
-            this.refreshColorStageByJumpCount()
-            this.onPerfectJump()
-            this.catCurrentBlock = this.catNextBlock
+            // 先明确落在目标 block，再做成功判定/冻结，避免终帧引用被清空造成位置跳变
+            const landedBlock = this.catNextBlock
+            if (landedBlock && landedBlock.isValid) {
+                this.catCurrentBlock = landedBlock
+                const landedPos = this.getCatStandPosByBlock(landedBlock)
+                if (landedPos) {
+                    this.catPre.setPosition(landedPos)
+                }
+            }
             this.catNextBlock = null
             this.catJumping = false
             this.catTriggeredOnCurrent = false
             this.catPre.scaleX = this.catBaseScaleX
             this.catPre.scaleY = this.catBaseScaleY
+            this.jumpSuccessCount += 1
+            this.refreshColorStageByJumpCount()
+            this.onPerfectJump(landedBlock)
         }
     }
-    private onPerfectJump() {
+    private onPerfectJump(landedBlock: cc.Node | null) {
         this.perfectJumpCount += 1
         if (this.prefectNode) {
             this.prefectNode.active = true
@@ -304,6 +312,12 @@ export default class GameUI extends cc.Component {
             }
         }
         if (this.perfectJumpCount < this.perfectTargetCount) {
+            return
+        }
+        // 达到连击后，还必须刚好落在最后一个 block 才进入成功
+        const lastBlockIndex = this.initialBlockCount - 1
+        const landedIndex = this.getBlockIndex(landedBlock)
+        if (landedIndex !== lastBlockIndex) {
             return
         }
         this.freezeForSuccess()
