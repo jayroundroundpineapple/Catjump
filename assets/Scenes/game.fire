@@ -6237,6 +6237,7 @@
       "__id__": 2
     },
     "_enabled": true,
+    "failUI": null,
     "prefectNode": {
       "__id__": 42
     },

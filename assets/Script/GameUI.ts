@@ -10,6 +10,8 @@ const { ccclass, property } = cc._decorator;
 @ccclass
 export default class GameUI extends cc.Component {
     @property(cc.Node)
+    private failUI:cc.Node = null
+    @property(cc.Node)
     private prefectNode:cc.Node = null
     @property(cc.SpriteFrame)
     private bgSpriteFrameArr: cc.SpriteFrame[] = []
