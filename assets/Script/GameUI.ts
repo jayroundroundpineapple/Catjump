@@ -37,6 +37,7 @@ export default class GameUI extends cc.Component {
     private blockFallSpeed: number = 420
     private topSpawnY: number = 0
     private bottomRecycleY: number = 0
+    private blockVerticalGap: number = 0
     private laneGap: number = 0
     private blockSpawnExtraScale: number = 0.65
     private isBlockMoving: boolean = false
@@ -110,10 +111,10 @@ export default class GameUI extends cc.Component {
         this.prepareLanes()
         this.refreshBlockBoundary()
         const span = this.topSpawnY - this.bottomRecycleY
+        this.blockVerticalGap = span / (this.initialBlockCount + 1)
         for (let i = 0; i < this.initialBlockCount; i++) {
-            // 从下往上排；用 (i+1)/(n+1) 避免贴在 bottomRecycleY/topSpawnY 上触发回收或出屏
-            const progress = (i + 1) / (this.initialBlockCount + 1)
-            const y = this.bottomRecycleY + progress * span
+            // 固定中心点间距，后续重生也按同样间距补位
+            const y = this.bottomRecycleY + this.blockVerticalGap * (i + 1)
             const blockNode = this.createOrReuseBlock()
             // 第一个block固定在中间列，x = 0
             if (i === 0) {
@@ -318,7 +319,9 @@ export default class GameUI extends cc.Component {
         blockNode.scale = this.blockSpawnExtraScale + nearRatio * 0.55
     }
     private respawnBlockAtTop(blockNode: cc.Node) {
-        this.placeBlock(blockNode, this.topSpawnY, true)
+        const topBlock = this.getTopBlock()
+        const nextY = topBlock ? (topBlock.y + this.blockVerticalGap) : this.topSpawnY
+        this.placeBlock(blockNode, nextY, true)
     }
     private clearAllBlocks() {
         for (let i = 0; i < this.activeBlocks.length; i++) {
